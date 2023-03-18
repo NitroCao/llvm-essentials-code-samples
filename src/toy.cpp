@@ -18,8 +18,20 @@ BasicBlock *createBB(Function *func, const std::string& name) {
     return BasicBlock::Create(context, name, func);
 }
 
+GlobalVariable *createGlob(IRBuilder<> &builder, const std::string& name) {
+    moduleObj->getOrInsertGlobal(name, builder.getInt32Ty());
+    GlobalVariable *globalVar = moduleObj->getNamedGlobal(name);
+
+    globalVar->setLinkage(GlobalValue::CommonLinkage);
+    globalVar->setAlignment(MaybeAlign(4));
+
+    return globalVar;
+}
+
 int main(int argc, char **argv) {
     static IRBuilder<> builder(context);
+
+    GlobalVariable *globalVar = createGlob(builder, "x");
 
     Function *fooFunc = createFunc(builder, "foo");
     BasicBlock *entry = createBB(fooFunc, "entry");
