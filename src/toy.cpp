@@ -41,6 +41,10 @@ GlobalVariable *createGlob(IRBuilder<> &builder, const std::string& name) {
     return globalVar;
 }
 
+Value *createArith(IRBuilder<> &builder, Value *L, Value *R) {
+    return builder.CreateMul(L, R, "mul_tmp");
+}
+
 int main(int argc, char **argv) {
     static IRBuilder<> builder(context);
 
@@ -51,7 +55,11 @@ int main(int argc, char **argv) {
     BasicBlock *entry = createBB(fooFunc, "entry");
     builder.SetInsertPoint(entry);
 
-    builder.CreateRet(builder.getInt32(0));
+    Value *arg1 = fooFunc->arg_begin();
+    Value *constant = builder.getInt32(16);
+    Value *val = createArith(builder, arg1, constant);
+
+    builder.CreateRet(val);
 
     verifyFunction(*fooFunc);
 
