@@ -8,10 +8,23 @@ using namespace llvm;
 
 static LLVMContext context;
 static Module *moduleObj = new Module("foo", context);
+static std::vector<std::string> FuncArgs;
 
 Function *createFunc(IRBuilder<> &builder, const std::string& name) {
-    FunctionType *functionType = FunctionType::get(builder.getInt32Ty(), false);
+    FuncArgs.emplace_back("a");
+    FuncArgs.emplace_back("b");
+    std::vector<Type *> integers(FuncArgs.size(), Type::getInt32Ty(context));
+
+    FunctionType *functionType = FunctionType::get(builder.getInt32Ty(), integers, false);
     return Function::Create(functionType, Function::ExternalLinkage, name, moduleObj);
+}
+
+void setFuncArgs(Function *func, std::vector<std::string> funcArgs) {
+    unsigned idx = 0;
+    Function::arg_iterator AI, AE;
+    for (AI = func->arg_begin(), AE = func->arg_end(); AI != AE; AI++, idx++) {
+        AI->setName(funcArgs[idx]);
+    }
 }
 
 BasicBlock *createBB(Function *func, const std::string& name) {
@@ -34,6 +47,7 @@ int main(int argc, char **argv) {
     GlobalVariable *globalVar = createGlob(builder, "x");
 
     Function *fooFunc = createFunc(builder, "foo");
+    setFuncArgs(fooFunc, FuncArgs);
     BasicBlock *entry = createBB(fooFunc, "entry");
     builder.SetInsertPoint(entry);
 
