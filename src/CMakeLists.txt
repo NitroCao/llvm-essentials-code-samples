@@ -1,0 +1,7 @@
+file(GLOB SOURCES *.cpp)
+foreach(SOURCE ${SOURCES})
+    get_filename_component(EXECUTABLE ${SOURCE} NAME_WE)
+    add_executable(${EXECUTABLE} ${SOURCE})
+    llvm_map_components_to_libnames(llvm_libs core)
+    target_link_libraries(${EXECUTABLE} ${llvm_libs})
+endforeach()
