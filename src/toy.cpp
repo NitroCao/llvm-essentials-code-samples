@@ -73,6 +73,38 @@ Value *createIfElse(IRBuilder<> &builder, BBList list, ValList valList) {
     return phi;
 }
 
+Value *createLoop(IRBuilder<> &builder, BBList list, ValList vl, Value *startVal, Value *endVal) {
+    // preheader basic block initializes the value of variable i to 1.
+    BasicBlock *preheaderBB = builder.GetInsertBlock();
+    Value *val = vl[0];
+    // loopBB basic block is the loop body.
+    BasicBlock *loopBB = list[0];
+    builder.CreateBr(loopBB);
+    // now we're in the loop body.
+    builder.SetInsertPoint(loopBB);
+
+    // idxVar stands for the induction variable i.
+    PHINode *idxVar = builder.CreatePHI(Type::getInt32Ty(context), 2, "i");
+    idxVar->addIncoming(startVal, preheaderBB);
+    // create the only statement inside the loop body.
+    Value *add = builder.CreateAdd(val, ConstantInt::get(Type::getInt32Ty(context), 5), "add_tmp");
+    // stepVal stands for the step value of variable i.
+    Value *stepVal = builder.getInt32(1);
+    // nextVal is the temporary variable which is incremented by i.
+    Value *nextVal = builder.CreateAdd(idxVar, stepVal, "next_val");
+    // endCond is the condition expression of the loop.
+    Value *endCond = builder.CreateICmpULT(idxVar, endVal, "end_cond");
+    endCond = builder.CreateICmpNE(endCond, builder.getInt1(false), "loop_cond");
+    BasicBlock *loopEndBB = builder.GetInsertBlock();
+    BasicBlock *afterBB = list[1];
+    // if the condition expression is true, it'll execute loopBB, or execute afterBB.
+    builder.CreateCondBr(endCond, loopBB, afterBB);
+    builder.SetInsertPoint(afterBB);
+    idxVar->addIncoming(nextVal, loopEndBB);
+
+    return add;
+}
+
 int main(int argc, char **argv) {
     static IRBuilder<> builder(context);
 
@@ -83,29 +115,24 @@ int main(int argc, char **argv) {
     BasicBlock *entry = createBB(fooFunc, "entry");
     builder.SetInsertPoint(entry);
 
-    Value *arg1 = fooFunc->arg_begin();
+    Function::arg_iterator AI = fooFunc->arg_begin();
+    Value *arg1 = AI++;
+    Value *arg2 = AI;
     Value *constant = builder.getInt32(16);
     Value *val = createArith(builder, arg1, constant);
-
-    Value *val2 = builder.getInt32(100);
-    Value *compare = builder.CreateICmpULT(val, val2, "cmp_tmp");
-    Value *condition = builder.CreateICmpNE(compare, builder.getInt1(false), "if_cond");
-
     ValList valList;
-    valList.emplace_back(condition);
     valList.emplace_back(arg1);
 
-    BasicBlock *thenBB = createBB(fooFunc, "then");
-    BasicBlock *elseBB = createBB(fooFunc, "else");
-    BasicBlock *mergeBB = createBB(fooFunc, "if_continue");
     BBList list;
-    list.emplace_back(thenBB);
-    list.emplace_back(elseBB);
-    list.emplace_back(mergeBB);
+    BasicBlock *loopBB = createBB(fooFunc, "loop");
+    BasicBlock *afterBB = createBB(fooFunc, "after_loop");
+    list.emplace_back(loopBB);
+    list.emplace_back(afterBB);
 
-    Value *v = createIfElse(builder, list, valList);
+    Value *startVal = builder.getInt32(1);
+    Value *result = createLoop(builder, list, valList, startVal, arg2);
 
-    builder.CreateRet(v);
+    builder.CreateRet(result);
 
     verifyFunction(*fooFunc);
 
