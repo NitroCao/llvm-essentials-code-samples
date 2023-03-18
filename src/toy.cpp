@@ -14,10 +14,17 @@ Function *createFunc(IRBuilder<> &builder, const std::string& name) {
     return Function::Create(functionType, Function::ExternalLinkage, name, moduleObj);
 }
 
+BasicBlock *createBB(Function *func, const std::string& name) {
+    return BasicBlock::Create(context, name, func);
+}
+
 int main(int argc, char **argv) {
     static IRBuilder<> builder(context);
 
     Function *fooFunc = createFunc(builder, "foo");
+    BasicBlock *entry = createBB(fooFunc, "entry");
+    builder.SetInsertPoint(entry);
+
     verifyFunction(*fooFunc);
 
     moduleObj->print(errs(), nullptr);
