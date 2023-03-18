@@ -37,6 +37,8 @@ int main(int argc, char **argv) {
     BasicBlock *entry = createBB(fooFunc, "entry");
     builder.SetInsertPoint(entry);
 
+    builder.CreateRet(builder.getInt32(0));
+
     verifyFunction(*fooFunc);
 
     moduleObj->print(errs(), nullptr);
